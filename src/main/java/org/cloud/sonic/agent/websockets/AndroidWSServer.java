@@ -125,6 +125,9 @@ public class AndroidWSServer implements IAndroidWSServer {
         }
 
         AndroidDeviceBridgeTool.executeCommand(iDevice, "am start -n org.cloud.sonic.android/.SonicServiceActivity");
+
+        AndroidDeviceBridgeTool.executeCommand(iDevice, "logcat -c");
+
         AndroidAPKMap.getMap().put(udId, true);
 
         AndroidTouchHandler.startTouch(iDevice);
@@ -233,6 +236,18 @@ public class AndroidWSServer implements IAndroidWSServer {
                 JSONObject result = new JSONObject();
                 result.put("msg", "pullResult");
                 String url = AndroidDeviceBridgeTool.pullFile(iDevice, msg.getString("path"));
+                if (url != null) {
+                    result.put("status", "success");
+                    result.put("url", url);
+                } else {
+                    result.put("status", "fail");
+                }
+                BytesTool.sendText(session, result.toJSONString());
+            }
+            case "logcatFlie" -> {
+                JSONObject result = new JSONObject();
+                result.put("msg", "logcatResult");
+                String url = AndroidDeviceBridgeTool.logFile(iDevice);
                 if (url != null) {
                     result.put("status", "success");
                     result.put("url", url);
