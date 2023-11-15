@@ -21,6 +21,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.android.ddmlib.IDevice;
+import com.android.ddmlib.InstallException;
+import lombok.extern.slf4j.Slf4j;
 import org.cloud.sonic.agent.bridge.android.AndroidDeviceBridgeTool;
 import org.cloud.sonic.agent.bridge.android.AndroidDeviceThreadPool;
 import org.cloud.sonic.agent.common.enums.AndroidKey;
@@ -67,6 +69,8 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.imageio.stream.FileImageOutputStream;
@@ -361,7 +365,48 @@ public class AndroidStepHandler {
         }
         return elementList;
     }
+    public void insallOV()  {
+        HandleContext handleContext =new HandleContext();
+        handleContext.setStepDes("处理OV手机安装");
+        String debiceName = iDevice.getProperty(IDevice.PROP_DEVICE_MANUFACTURER);
+        if("realme".equals(debiceName)||"OPPO".equals(debiceName)||"VIVO".equals(debiceName)){
+        long start = System.currentTimeMillis();
+        long end = start + 300000;
+        while(System.currentTimeMillis() > end) {
 
+            AndroidElement w= null;
+            try {
+                w = findEle("xpath", "//android.widget.Button[@text='继续安装']",1);
+                if(w!=null){
+                    w.click();
+                }
+            } catch (SonicRespException e) {
+                AndroidElement w2 = null;
+                try {
+                    w2 = findEle("xpath", "//android.widget.Button[@text='安装']",1);
+                    if (w2 != null) {
+                        //清空输入框
+                        AndroidDeviceBridgeTool.sendKeysByKeyboard(iDevice,"CODE_AC_CLEAN");
+                        //启动输入法输入密码
+                        sendKeyForce(handleContext, "idreamsky2019");
+                        w2.click();
+                    }
+                } catch (SonicRespException ex) {
+                    AndroidElement w3= null;
+                    try {
+                        w3 = findEle("xpath", "//android.widget.Button[@text='完成']",1);
+                        if(w3!=null){
+                            w3.click();
+                        }
+                    } catch (SonicRespException exc) {
+
+                    }
+                }
+            }
+
+            }
+        }
+    }
     public void install(HandleContext handleContext, String path) {
         handleContext.setStepDes("安装应用");
         path = TextHandler.replaceTrans(path, globalParams);
