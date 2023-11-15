@@ -22,17 +22,20 @@ import com.alibaba.fastjson.JSONObject;
 import com.android.ddmlib.*;
 import lombok.extern.slf4j.Slf4j;
 import org.cloud.sonic.agent.common.enums.AndroidKey;
+import org.cloud.sonic.agent.common.maps.*;
 import org.cloud.sonic.agent.common.maps.AndroidThreadMap;
 import org.cloud.sonic.agent.common.maps.AndroidWebViewMap;
 import org.cloud.sonic.agent.common.maps.ChromeDriverMap;
 import org.cloud.sonic.agent.common.maps.GlobalProcessMap;
 import org.cloud.sonic.agent.tests.android.AndroidBatteryThread;
+import org.cloud.sonic.agent.tests.handlers.AndroidStepHandler;
 import org.cloud.sonic.agent.tools.BytesTool;
 import org.cloud.sonic.agent.tools.PortTool;
 import org.cloud.sonic.agent.tools.ScheduleTool;
 import org.cloud.sonic.agent.tools.file.DownloadTool;
 import org.cloud.sonic.agent.tools.file.FileTool;
 import org.cloud.sonic.agent.tools.file.UploadTools;
+import org.cloud.sonic.driver.android.service.AndroidElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
@@ -262,6 +265,10 @@ public class AndroidDeviceBridgeTool implements ApplicationListener<ContextRefre
     }
 
     public static void install(IDevice iDevice, String path) throws InstallException {
+        AndroidDeviceThreadPool.cachedThreadPool.execute(() -> {
+            AndroidStepHandler androidStepHandler2 = HandlerMap.getAndroidMap().get(iDevice.getSerialNumber());
+            androidStepHandler2.insallOV();
+        });
         try {
             iDevice.installPackage(path,
                     true, new InstallReceiver(), 180L, 180L, TimeUnit.MINUTES
@@ -621,7 +628,63 @@ public class AndroidDeviceBridgeTool implements ApplicationListener<ContextRefre
             executeCommand(iDevice, "dumpsys battery reset");
         }
     }
-
+    public static String logFile(IDevice iDevice){
+        String result = null;
+        File base = new File("test-output" + File.separator + "pull");
+        String filename = base.getAbsolutePath() + File.separator+ UUID.randomUUID() ;
+        File file = new File(filename);
+        String logcatName = file.getAbsolutePath()+File.separator+iDevice.getSerialNumber()+".log";
+        file.mkdirs();
+        String system = System.getProperty("os.name").toLowerCase();
+        String processName = String.format("process-%s-logcat-file", iDevice.getSerialNumber());
+        if (GlobalProcessMap.getMap().get(processName) != null) {
+            Process ps = GlobalProcessMap.getMap().get(processName);
+            ps.children().forEach(ProcessHandle::destroy);
+            ps.destroy();
+        }
+        try {
+            Process process = null;
+            String command = String.format("%s -s %s logcat -v time > %s", getADBPathFromSystemEnv(), iDevice.getSerialNumber(),logcatName );
+            if (system.contains("win")) {
+                process = Runtime.getRuntime().exec(new String[]{"cmd", "/c", command});
+            } else if (system.contains("linux") || system.contains("mac")) {
+                process = Runtime.getRuntime().exec(new String[]{"sh", "-c", command});
+            }
+            GlobalProcessMap.getMap().put(processName, process);
+            boolean isRunning;
+            int wait = 0;
+            do {
+                Thread.sleep(500);
+                wait++;
+                isRunning = false;
+                List<ProcessHandle> processHandleList = process.children().collect(Collectors.toList());
+                if (processHandleList.size() == 0) {
+                    if (process.isAlive()) {
+                        isRunning = true;
+                    }
+                } else {
+                    for (ProcessHandle p : processHandleList) {
+                        if (p.isAlive()) {
+                            isRunning = true;
+                            break;
+                        }
+                    }
+                }
+                if (wait >= 20) {
+                    process.children().forEach(ProcessHandle::destroy);
+                    process.destroy();
+                    break;
+                }
+            } while (isRunning);
+            File re = new File(filename + File.separator +iDevice.getSerialNumber()+".log" );
+            result = UploadTools.upload(re, "packageFiles");
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            FileTool.deleteDir(file);
+        }
+        return result;
+    }
     public static String pullFile(IDevice iDevice, String path) {
         String result = null;
         File base = new File("test-output" + File.separator + "pull");
