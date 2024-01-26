@@ -369,11 +369,10 @@ public class AndroidStepHandler {
         HandleContext handleContext =new HandleContext();
         handleContext.setStepDes("处理OV手机安装");
         String debiceName = iDevice.getProperty(IDevice.PROP_DEVICE_MANUFACTURER);
-        if("realme".equals(debiceName)||"OPPO".equals(debiceName)||"VIVO".equals(debiceName)){
+        if("realme".equals(debiceName)||"OPPO".equals(debiceName)||"VIVO".equals(debiceName)||"vivo".equals(debiceName)){
         long start = System.currentTimeMillis();
-        long end = start + 300000;
-        while(System.currentTimeMillis() > end) {
-
+        long end = start + 3000000;
+        while(System.currentTimeMillis() < end) {
             AndroidElement w= null;
             try {
                 w = findEle("xpath", "//android.widget.Button[@text='继续安装']",1);

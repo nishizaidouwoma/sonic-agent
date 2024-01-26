@@ -30,7 +30,7 @@ public class MockStepDebugTest {
     AndroidStepHandler androidStepHandler;
     @Getter
     @Setter
-    String udId = "829ed1f"; // your device udid
+    String udId = "e5076083"; // your device udid
 
     @Autowired
     StepHandlers handlers;
@@ -45,6 +45,7 @@ public class MockStepDebugTest {
         androidStepHandler.setTestMode(0, 0, iDevice.getSerialNumber(), "no send server", "ddddddd");
         int port = AndroidDeviceBridgeTool.startUiaServer(iDevice);
         androidStepHandler.startAndroidDriver(iDevice, port);
+
     }
 
     @Test
