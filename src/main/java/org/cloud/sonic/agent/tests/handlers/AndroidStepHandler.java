@@ -37,6 +37,8 @@ import org.cloud.sonic.agent.common.maps.ChromeDriverMap;
 import org.cloud.sonic.agent.common.models.HandleContext;
 import org.cloud.sonic.agent.tests.LogUtil;
 import org.cloud.sonic.agent.tests.RunStepThread;
+import org.cloud.sonic.agent.tests.opencv.ORBinder;
+import org.cloud.sonic.agent.tests.opencv.SURFinder;
 import org.cloud.sonic.agent.tests.script.GroovyScriptImpl;
 import org.cloud.sonic.agent.tests.script.PythonScriptImpl;
 import org.cloud.sonic.agent.tests.script.ScriptRunner;
@@ -1184,7 +1186,37 @@ public class AndroidStepHandler {
                     log.sendStepLog(StepType.INFO, "图片定位到坐标：(" + findResult.getX() + "," + findResult.getY() + ")  耗时：" + findResult.getTime() + " ms",
                             url);
                 } else {
-                    handleContext.setE(new Exception("图片定位失败！"));
+                    log.sendStepLog(StepType.INFO, "模版匹配算法无法定位图片，切换SURF算法中...",
+                            "");
+                    try {
+                        SURFinder surFinder =new SURFinder();
+                        findResult=surFinder.getSURFFindResult(file, getScreenToLocal(), true);
+                    }catch (Exception e){
+                        log.sendStepLog(StepType.WARN, "模版SURF算法出错",
+                                "");
+                    }
+                    if(findResult != null){
+                        String url = UploadTools.upload(findResult.getFile(), "imageFiles");
+                        log.sendStepLog(StepType.INFO, "图片定位到坐标：(" + findResult.getX() + "," + findResult.getY() + ")  耗时：" + findResult.getTime() + " ms",
+                                url);
+                    }else {
+                        log.sendStepLog(StepType.INFO, "SURF算法无法定位图片，切换ORB算法中...",
+                                "");
+                        try {
+                            ORBinder orBinder =new ORBinder();
+                            findResult=orBinder.getORBFindResult(file, getScreenToLocal(), true);
+                        }catch (Exception e){
+                            log.sendStepLog(StepType.WARN, "模版ORB算法出错",
+                                    "");
+                        }
+                        if(findResult != null){
+                            String url = UploadTools.upload(findResult.getFile(), "imageFiles");
+                            log.sendStepLog(StepType.INFO, "图片定位到坐标：(" + findResult.getX() + "," + findResult.getY() + ")  耗时：" + findResult.getTime() + " ms",
+                                    url);
+                        }else {
+                            handleContext.setE(new Exception("图片定位失败！"));
+                        }
+                    }
                 }
             }
         }

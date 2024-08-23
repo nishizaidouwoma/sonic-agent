@@ -265,10 +265,6 @@ public class AndroidDeviceBridgeTool implements ApplicationListener<ContextRefre
     }
 
     public static void install(IDevice iDevice, String path) throws InstallException {
-        AndroidDeviceThreadPool.cachedThreadPool.execute(() -> {
-            AndroidStepHandler androidStepHandler2 = HandlerMap.getAndroidMap().get(iDevice.getSerialNumber());
-            androidStepHandler2.insallOV();
-        });
         try {
             iDevice.installPackage(path,
                     true, new InstallReceiver(), 180L, 180L, TimeUnit.MINUTES
